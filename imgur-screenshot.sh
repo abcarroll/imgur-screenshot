@@ -389,7 +389,7 @@ function handle_album_creation_error() {
 }
 
 function delete_all_from_log() {
-  all_codes="$(grep '^https:\/\/' ${log_file} | cut -d$'\t' -f3 | cut -d'/' -f5)"
+  all_codes="$(grep '^https:\/\/' ${log_file} | tac | cut -d$'\t' -f3 | cut -d'/' -f5)"
   code_count="$(echo "${all_codes}" | wc -l)"
 
   echo "Are you absolutely SURE you want to delete all the items from the following log file: "
@@ -409,15 +409,20 @@ function delete_all_from_log() {
   progress=0
   while read -r line; do
     progress=$((progress+1))
-    already_deleted="$(grep "${line}" "${log_file}" | grep 'successfully deleted' | wc -l)";
-    if ((already_deleted > 1)); then
+    already_deleted="$(grep "${line}" "${log_file}" | grep 'successfully deleted' | wc -l)"
+    if ((already_deleted > 0)); then
       echo "(Item ${progress} / ${code_count}) Image '${line}' was already deleted according to the log"
     else
+      echo "Deleting: " ${imgur_anon_id} ${line} ${log_file}
+      sleep 1
+      
       delete_image ${imgur_anon_id} ${line} ${log_file}
       if egrep -q '"success":\s*true' <<<"${response}"; then
         echo "(Item ${progress} / ${code_count}) Deletion of '${line}' was successful"
       else
-        echo "(Item ${progress} / ${code_count}) Deletion of '${line}' was successful"
+        echo "(Item ${progress} / ${code_count}) Deletion of '${line}' was not successful"
+	echo "Something went wrong; here is the raw response:"
+	echo ${response}
       fi
       sleep 1
   fi
